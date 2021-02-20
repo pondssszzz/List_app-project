@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.decorators import api_view
+from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
 from django.http import HttpResponse, Http404
 from django.core.exceptions import ObjectDoesNotExist
@@ -58,35 +59,33 @@ def MenuNoteRequest(request, mn_table=None, num=3): # mn_queue is sorted by defa
 
 
 # http://servername:port/ api/add/menunote/
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 def MenuNotePost(request):
-    if request.method == 'POST':
-        menunote_data = JSONParser().parse(request)
-        menunote_serializer = MenuNoteSerializer(menunote, data=menunote_data)
-        if menunote_serializer.is_valid(): 
-            menunote_serializer.save()
-            return Response(menunote_serializer.data, status=status.HTTP_201_CREATED)
-        return Response(menunote_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    menunote_data = JSONParser().parse(request)
+    menunote_serializer = MenuNoteSerializer(menunote, data=menunote_data)
+    if menunote_serializer.is_valid(): 
+        menunote_serializer.save()
+        return Response(menunote_serializer.data, status=status.HTTP_201_CREATED)
+    return Response(menunote_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# http://servername:port/ api/update/menunote/4
-@api_view(['PUT'])
+# http://servername:port/ api/update/menunote/6
+@api_view(['GET', 'PUT'])
 def MenuNoteUpdate(request, pk):
     try: 
         menunote = MenuNote.objects.get(pk=pk) 
-    except ObjectDoesNotExist:
-        return Http404("Such queue no longer exists...")
-    if request.method == 'PUT':
-        menunote_data = JSONParser().parse(request)
-        menunote_serializer = MenuNoteSerializer(menunote, data=menunote_data)
-        if menunote_serializer.is_valid(): 
-            menunote_serializer.save()
-            return Response(menunote_serializer.data, status=status.HTTP_200_OK)
-        return Response(menunote_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except MenuNote.DoesNotExist: 
+        raise Http404("Such queue no longer exists...")
+    menunote_data = JSONParser().parse(request) 
+    menunote_serializer = MenuNoteSerializer(menunote, data=menunote_data) 
+    if menunote_serializer.is_valid(): 
+        menunote_serializer.save() 
+        return JsonResponse(menunote_serializer.data) 
+    return JsonResponse(menunote_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # http://servername:port/ api/delete/menunote/4
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET', 'DELETE'])
 def MenuNoteDelete(request, pk):
     try: 
         menunote = MenuNote.objects.get(pk=pk)
